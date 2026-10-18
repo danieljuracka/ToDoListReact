@@ -43,7 +43,7 @@ export function matchesRule(rule: RecurrenceRule, start: Date, date: Date): bool
   }
 }
 
-/** Zistí, či má aktivita v daný deň výskyt (bez ohľadu na archiváciu a kvótu za týždeň). */
+/** Zistí, či má aktivita v daný deň výskyt (bez ohľadu na kvótu za týždeň). */
 export function occursOn(activity: Activity, date: ISODate): boolean {
   if (date < activity.startDate) return false
   if (activity.endDate && date > activity.endDate) return false

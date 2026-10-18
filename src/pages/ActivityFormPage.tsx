@@ -3,7 +3,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { buttonDanger, buttonPrimary, buttonSecondary, checkbox, input, label } from '@/components/ui'
 import { db } from '@/db/db'
-import { deleteActivity, saveActivity, setArchived } from '@/db/days'
+import { deleteActivity, saveActivity } from '@/db/days'
 import { getSettings } from '@/db/settings'
 import { formatDayTitle } from '@/domain/dates'
 import { WEEKDAY_SHORT } from '@/domain/describe'
@@ -57,7 +57,6 @@ function emptyActivity(today: string, carryOver: boolean): Activity {
     startDate: today,
     skipDates: [],
     carryOver,
-    archived: false,
     createdAt: Date.now(),
   }
 }
@@ -90,14 +89,9 @@ export function ActivityFormPage() {
     goBack()
   }
 
-  const archive = async () => {
-    await setArchived(form.id, !form.archived, today)
-    navigate('/aktivity')
-  }
-
   const remove = async () => {
-    if (!confirm('Zmazať aktivitu aj celú jej históriu? Ak chceš históriu zachovať, zvoľ radšej Archivovať.')) return
-    await deleteActivity(form.id)
+    if (!confirm('Zmazať aktivitu? Zmizne z dneška aj budúcich dní, splnené misie v histórii ostanú.')) return
+    await deleteActivity(form.id, today)
     navigate('/aktivity')
   }
 
@@ -211,12 +205,9 @@ export function ActivityFormPage() {
       </div>
 
       {id && existing && (
-        <div className="flex gap-2 border-t border-line pt-4">
-          <button type="button" className={`${buttonSecondary} flex-1`} onClick={() => void archive()}>
-            {form.archived ? 'Obnoviť z archívu' : 'Archivovať'}
-          </button>
-          <button type="button" className={buttonDanger} onClick={() => void remove()}>
-            Zmazať
+        <div className="border-t border-line pt-4">
+          <button type="button" className={`${buttonDanger} w-full`} onClick={() => void remove()}>
+            Zmazať aktivitu
           </button>
         </div>
       )}

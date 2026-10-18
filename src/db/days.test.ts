@@ -4,12 +4,12 @@ import type { Activity, RecurrenceRule } from '@/domain/types'
 import { db } from './db'
 import {
   addQuickTask,
+  deleteActivity,
   getDayView,
   materializeDay,
   materializeUpTo,
   moveOccurrence,
   saveActivity,
-  setArchived,
   setStatus,
 } from './days'
 
@@ -22,7 +22,6 @@ function activity(id: string, recurrence: RecurrenceRule, extra: Partial<Activit
     startDate: '2026-10-01',
     skipDates: [],
     carryOver: false,
-    archived: false,
     createdAt: 0,
     ...extra,
   }
@@ -117,12 +116,12 @@ describe('úpravy', () => {
     expect(await titles('2026-10-18', '2026-10-18')).toEqual(['Beh 5 km:open'])
   })
 
-  it('archivovaná aktivita zmizne z dneška aj budúcich dní, v histórii ostane', async () => {
+  it('zmazaná aktivita zmizne z dneška aj budúcich dní, v histórii ostane', async () => {
     await db.activities.add(activity('beh', daily))
     await materializeDay('2026-10-17')
     await setStatus('beh_2026-10-17', 'done')
     await materializeDay('2026-10-18')
-    await setArchived('beh', true, '2026-10-18')
+    await deleteActivity('beh', '2026-10-18')
     expect(await titles('2026-10-17', '2026-10-18')).toEqual(['beh:done'])
     expect(await titles('2026-10-18', '2026-10-18')).toEqual([])
     expect(await titles('2026-10-19', '2026-10-18')).toEqual([])

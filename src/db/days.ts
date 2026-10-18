@@ -72,7 +72,7 @@ export async function materializeDay(date: ISODate): Promise<void> {
 
     for (const o of prevOccurrences) {
       const activity = byId.get(o.activityId)
-      if (o.status !== 'open' || !activity?.carryOver || activity.archived) continue
+      if (o.status !== 'open' || !activity?.carryOver) continue
       await db.occurrences.update(o.id, { status: 'carried' })
       if (!present.has(activity.id)) {
         toAdd.push(newOccurrence(activity, date, order++, o.carriedFrom ?? prev))
@@ -81,7 +81,7 @@ export async function materializeDay(date: ISODate): Promise<void> {
     }
 
     for (const activity of activities) {
-      if (activity.archived || present.has(activity.id) || !occursOn(activity, date)) continue
+      if (present.has(activity.id) || !occursOn(activity, date)) continue
       if (await weeklyQuotaReached(activity, date)) continue
       toAdd.push(newOccurrence(activity, date, order++))
       present.add(activity.id)
@@ -143,7 +143,7 @@ export async function getDayView(date: ISODate, today: ISODate): Promise<DayItem
   if (date > today) {
     const present = new Set(stored.map((o) => o.activityId))
     for (const activity of activities) {
-      if (activity.archived || present.has(activity.id) || !occursOn(activity, date)) continue
+      if (present.has(activity.id) || !occursOn(activity, date)) continue
       items.push({
         key: occurrenceId(activity.id, date),
         activity,
@@ -208,7 +208,6 @@ export async function addQuickTask(title: string, date: ISODate, today: ISODate)
     startDate: date,
     skipDates: [],
     carryOver: defaultCarryOver,
-    archived: false,
     createdAt: Date.now(),
   }
   await db.transaction('rw', db.activities, db.occurrences, async () => {
@@ -238,18 +237,13 @@ export async function saveActivity(activity: Activity, today: ISODate): Promise<
   await materializeDay(today)
 }
 
-export async function setArchived(activityId: string, archived: boolean, today: ISODate): Promise<void> {
+/**
+ * Zmaže aktivitu. Z dneška a budúcich dní zmiznú jej nesplnené výskyty,
+ * história (splnené, preskočené a minulé dni) ostáva pod pôvodným názvom.
+ */
+export async function deleteActivity(activityId: string, today: ISODate): Promise<void> {
   await db.transaction('rw', db.activities, db.occurrences, async () => {
-    await db.activities.update(activityId, { archived })
-    if (archived) await dropOpenFromToday(activityId, today, true)
-  })
-  if (!archived) await materializeDay(today)
-}
-
-/** Zmaže aktivitu aj celú jej históriu. */
-export async function deleteActivity(activityId: string): Promise<void> {
-  await db.transaction('rw', db.activities, db.occurrences, async () => {
-    await db.occurrences.where('activityId').equals(activityId).delete()
+    await dropOpenFromToday(activityId, today, true)
     await db.activities.delete(activityId)
   })
 }

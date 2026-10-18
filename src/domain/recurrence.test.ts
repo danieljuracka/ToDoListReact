@@ -11,7 +11,6 @@ function activity(recurrence: RecurrenceRule, extra: Partial<Activity> = {}): Ac
     startDate: '2026-01-01',
     skipDates: [],
     carryOver: false,
-    archived: false,
     createdAt: 0,
     ...extra,
   }

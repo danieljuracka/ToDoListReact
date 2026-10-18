@@ -37,7 +37,6 @@ export interface Activity {
   skipDates: ISODate[]
   /** Preniesť nesplnenú úlohu na ďalší deň. */
   carryOver: boolean
-  archived: boolean
   createdAt: number
 }
 
