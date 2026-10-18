@@ -21,6 +21,11 @@ export function addDaysISO(value: ISODate, days: number): ISODate {
   return toISODate(addDays(parseISODate(value), days))
 }
 
+/** Napr. „18. 10.“ */
+export function formatShortDate(value: ISODate): string {
+  return format(parseISODate(value), 'd. M.')
+}
+
 /** Napr. „sobota 18. októbra“. */
 export function formatDayTitle(value: ISODate): string {
   return format(parseISODate(value), 'EEEE d. MMMM', { locale: sk })

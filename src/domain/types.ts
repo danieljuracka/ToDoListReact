@@ -75,4 +75,6 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark'
   /** Predvolená hodnota carryOver pre nové aktivity. */
   defaultCarryOver: boolean
+  /** Posledný deň, pre ktorý sú výskyty uložené v histórii. */
+  lastMaterialized?: ISODate
 }
