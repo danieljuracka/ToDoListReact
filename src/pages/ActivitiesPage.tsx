@@ -13,8 +13,8 @@ export function ActivitiesPage() {
     <section className="pt-4">
       <div className="flex items-center justify-between">
         <h1 className="heading text-2xl">Aktivity</h1>
-        <Link to="/aktivity/nova" className={buttonPrimary}>
-          + Nová
+        <Link to="/aktivity/nova" className={buttonPrimary} aria-label="Nová aktivita">
+          +<span className="hidden sm:inline"> Nová</span>
         </Link>
       </div>
 
@@ -35,7 +35,7 @@ export function ActivitiesPage() {
       </ul>
 
       {activities && sorted.length === 0 && (
-        <p className="mt-6 text-muted">Zatiaľ žiadne aktivity. Pridaj prvú tlačidlom + Nová.</p>
+        <p className="mt-6 text-muted">Zatiaľ žiadne aktivity. Pridaj prvú tlačidlom +.</p>
       )}
     </section>
   )
