@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "icons": "pwa-assets-generator --preset minimal-2023 public/favicon.svg"
+    "icons": "pwa-assets-generator"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
