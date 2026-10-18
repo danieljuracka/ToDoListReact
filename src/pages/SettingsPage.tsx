@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ChangeEvent } from 'react'
-import { buttonPrimary, buttonSecondary } from '@/components/ui'
+import { buttonPrimary, buttonSecondary, checkbox } from '@/components/ui'
 import { exportBackup, parseBackup, restoreBackup } from '@/db/backup'
 import { db } from '@/db/db'
 import { materializeUpTo } from '@/db/days'
@@ -53,25 +53,25 @@ export function SettingsPage() {
 
   return (
     <section className="space-y-6 pt-4">
-      <h1 className="text-2xl font-bold">Nastavenia</h1>
+      <h1 className="heading text-2xl">Nastavenia</h1>
 
-      <label className="flex items-center justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+      <label className="flex items-center justify-between panel p-3">
         <span>
           Nové aktivity prenášať na ďalší deň
-          <span className="block text-sm text-slate-500">Dá sa zmeniť pri každej aktivite.</span>
+          <span className="block text-sm text-muted">Dá sa zmeniť pri každej aktivite.</span>
         </span>
         <input
           type="checkbox"
-          className="size-5 accent-blue-600"
+          className={checkbox}
           checked={settings?.defaultCarryOver ?? true}
           onChange={(e) => void updateSettings({ defaultCarryOver: e.target.checked })}
         />
       </label>
 
-      <div className="space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+      <div className="space-y-3 panel p-3">
         <div>
-          <h2 className="font-medium">Záloha dát</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="font-display tracking-wide text-accent2">Záloha dát</h2>
+          <p className="text-sm text-muted">
             Dáta sú iba v tomto zariadení. Pri výmene telefónu alebo vymazaní dát prehliadača sa stratia, preto si
             pravidelne ulož zálohu.
           </p>
@@ -88,7 +88,7 @@ export function SettingsPage() {
         {message && <p className="text-sm">{message}</p>}
       </div>
 
-      <dl className="space-y-1 text-sm text-slate-500">
+      <dl className="space-y-1 text-sm text-muted">
         <div>
           Aktivity: {counts?.activities ?? '–'} · Záznamy histórie: {counts?.occurrences ?? '–'}
         </div>

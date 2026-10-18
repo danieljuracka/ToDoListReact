@@ -1,12 +1,116 @@
 @import 'tailwindcss';
+/* Iba latinka a latin-ext (slovenské znaky), aby offline cache ostala malá */
+@import '@fontsource/shojumaru/latin-400.css';
+@import '@fontsource/shojumaru/latin-ext-400.css';
+@import '@fontsource/zen-maru-gothic/latin-500.css';
+@import '@fontsource/zen-maru-gothic/latin-ext-500.css';
+@import '@fontsource/zen-maru-gothic/latin-700.css';
+@import '@fontsource/zen-maru-gothic/latin-ext-700.css';
+
+/*
+ * Ninja téma: pergamen, atrament, oranžová a červená.
+ * Komponenty používajú iba tieto tokeny, takže zmena vzhľadu = zmena tohto súboru.
+ */
+@theme {
+  --font-sans: 'Zen Maru Gothic', system-ui, sans-serif;
+  --font-display: 'Shojumaru', 'Zen Maru Gothic', serif;
+  --color-paper: #efdcb4;
+  --color-surface: #fbf1da;
+  --color-surface-hi: #f3e3c0;
+  --color-line: #2a1c12;
+  --color-ink: #22170f;
+  --color-muted: #7d6247;
+  --color-accent: #d95400;
+  --color-accent2: #c4161c;
+  --color-accent3: #3a6b35;
+  --color-danger: #a3121a;
+}
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  @apply bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  @apply bg-paper font-sans font-medium text-ink antialiased;
   overscroll-behavior-y: none;
+  /* Pergamen: vlákna papiera, tmavšie okraje a slabá špirála v rohu */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M100 100m0-6a6 6 0 1 1-6 6a14 14 0 1 1 14 14a22 22 0 1 1-22-22a30 30 0 1 1 30 30a38 38 0 1 1-38-38a46 46 0 1 1 46 46a54 54 0 1 1-54-54' fill='none' stroke='%23d95400' stroke-opacity='0.13' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at center, transparent 55%, rgb(120 70 20 / 0.22) 100%),
+    repeating-linear-gradient(8deg, rgb(120 80 30 / 0.035) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-12deg, rgb(255 255 255 / 0.12) 0 1px, transparent 1px 9px);
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  background-position:
+    right -70px top -50px,
+    center,
+    0 0,
+    0 0;
+  background-size:
+    300px 300px,
+    100% 100%,
+    auto,
+    auto;
+  background-attachment: fixed;
+}
+
+@utility shape {
+  border-radius: 6px;
+}
+
+@utility shape-sm {
+  border-radius: 4px;
+}
+
+@utility shadow-ink {
+  box-shadow: 3px 3px 0 var(--color-line);
+}
+
+@utility glow-accent {
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+
+@utility glow-accent2 {
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+
+@layer components {
+  /* Karta ako kúsok zvitku: atramentový okraj, oranžový pruh, tieň ako v mange */
+  .panel {
+    @apply shape border-2 border-l-[6px] border-line border-l-accent bg-surface shadow-ink;
+  }
+
+  .heading {
+    @apply font-display tracking-wide text-accent;
+    text-shadow:
+      2px 2px 0 var(--color-line),
+      -1px -1px 0 var(--color-line),
+      1px -1px 0 var(--color-line),
+      -1px 1px 0 var(--color-line);
+  }
+}
+
+/* Hodenie shurikenu pri odškrtnutí */
+@keyframes throw {
+  0% {
+    transform: scale(1.8) rotate(-540deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(0.9) rotate(20deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.animate-check {
+  animation: throw 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-check {
+    animation: none;
+  }
 }

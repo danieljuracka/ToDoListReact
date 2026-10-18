@@ -10,10 +10,10 @@ const tabs = [
 export function Layout() {
   return (
     <div className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)]">
-      <main className="flex-1 px-4 pb-24">
+      <main className="flex-1 px-4 pb-28">
         <Outlet />
       </main>
-      <nav className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t-4 border-accent bg-line pb-[env(safe-area-inset-bottom)]">
         <ul className="mx-auto flex max-w-md">
           {tabs.map((tab) => (
             <li key={tab.to} className="flex-1">
@@ -21,8 +21,8 @@ export function Layout() {
                 to={tab.to}
                 end={tab.end}
                 className={({ isActive }) =>
-                  `block py-3 text-center text-sm font-medium ${
-                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'
+                  `block py-3.5 text-center text-xs font-bold tracking-wider uppercase ${
+                    isActive ? 'bg-accent/15 text-accent' : 'text-paper/60'
                   }`
                 }
               >

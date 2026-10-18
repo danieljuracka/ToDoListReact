@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { buttonDanger, buttonPrimary, buttonSecondary, input, label } from '@/components/ui'
+import { buttonDanger, buttonPrimary, buttonSecondary, checkbox, input, label } from '@/components/ui'
 import { db } from '@/db/db'
 import { deleteActivity, saveActivity, setArchived } from '@/db/days'
 import { getSettings } from '@/db/settings'
@@ -103,7 +103,7 @@ export function ActivityFormPage() {
 
   return (
     <form onSubmit={submit} className="space-y-4 pt-4">
-      <h1 className="text-2xl font-bold">{id ? 'Upraviť aktivitu' : 'Nová aktivita'}</h1>
+      <h1 className="heading text-2xl">{id ? 'Upraviť aktivitu' : 'Nová aktivita'}</h1>
 
       <Field title="Názov">
         <input className={input} value={form.title} onChange={(e) => set({ title: e.target.value })} required autoFocus={!id} />
@@ -121,9 +121,9 @@ export function ActivityFormPage() {
       <div className="grid grid-cols-2 gap-3">
         <Field title="Priorita">
           <select className={input} value={form.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
-            <option value="low">Nízka</option>
-            <option value="medium">Stredná</option>
-            <option value="high">Vysoká</option>
+            <option value="low">Nízka (rank C)</option>
+            <option value="medium">Stredná (rank B)</option>
+            <option value="high">Vysoká (rank A)</option>
           </select>
         </Field>
         <Field title="Čas (voliteľné)">
@@ -173,20 +173,20 @@ export function ActivityFormPage() {
         </div>
       )}
 
-      <label className="flex items-center justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+      <label className="flex items-center justify-between panel p-3">
         <span>Preniesť nesplnenú na ďalší deň</span>
         <input
           type="checkbox"
-          className="size-5 accent-blue-600"
+          className={checkbox}
           checked={form.carryOver}
           onChange={(e) => set({ carryOver: e.target.checked })}
         />
       </label>
 
-      <div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
-        <div className="mb-1 font-medium">Najbližšie výskyty</div>
+      <div className="panel p-3 text-sm">
+        <div className={label}>Najbližšie výskyty</div>
         {preview.length ? (
-          <ul className="text-slate-600 dark:text-slate-400">
+          <ul className="text-ink/80">
             {preview.map((d) => (
               <li key={d} className="first-letter:uppercase">
                 {formatDayTitle(d)}
@@ -194,10 +194,10 @@ export function ActivityFormPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-slate-500">V najbližších 2 rokoch žiadny.</p>
+          <p className="text-muted">V najbližších 2 rokoch žiadny.</p>
         )}
         {rule.type === 'timesPerWeek' && (
-          <p className="mt-1 text-slate-500">Zobrazuje sa každý deň, kým v týždni nie je splnená {rule.count}×.</p>
+          <p className="mt-1 text-muted">Zobrazuje sa každý deň, kým v týždni nie je splnená {rule.count}×.</p>
         )}
       </div>
 
@@ -211,7 +211,7 @@ export function ActivityFormPage() {
       </div>
 
       {id && existing && (
-        <div className="flex gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        <div className="flex gap-2 border-t border-line pt-4">
           <button type="button" className={`${buttonSecondary} flex-1`} onClick={() => void archive()}>
             {form.archived ? 'Obnoviť z archívu' : 'Archivovať'}
           </button>
@@ -294,8 +294,8 @@ function RuleEditor({ rule, onChange }: { rule: RecurrenceRule; onChange: (rule:
                 key={d}
                 type="button"
                 onClick={() => toggle(d)}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium ${
-                  rule.weekdays.includes(d) ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800'
+                className={`shape-sm flex-1 border py-2 text-sm font-semibold ${
+                  rule.weekdays.includes(d) ? 'border-line bg-accent text-surface' : 'border-line bg-surface text-muted'
                 }`}
               >
                 {WEEKDAY_SHORT[d]}

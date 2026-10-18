@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { buttonPrimary, input } from '@/components/ui'
+import { RankBadge, Shuriken } from '@/components/Ninja'
+import { buttonPrimary, buttonSmall, input } from '@/components/ui'
 import { addQuickTask, dayStats, getDayView, materializeDay, moveOccurrence, setStatus, type DayItem } from '@/db/days'
 import { addDaysISO, formatDayTitle, formatShortDate } from '@/domain/dates'
 import type { ISODate } from '@/domain/types'
@@ -25,37 +26,45 @@ export function TodayPage() {
   return (
     <section className="pt-4">
       <header className="flex items-center gap-2">
-        <button aria-label="Predchádzajúci deň" className="p-2 text-2xl" onClick={() => goTo(addDaysISO(date, -1))}>
+        <button aria-label="Predchádzajúci deň" className="p-2 text-3xl font-bold text-accent2" onClick={() => goTo(addDaysISO(date, -1))}>
           ‹
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-xl font-bold first-letter:uppercase">{formatDayTitle(date)}</h1>
+          <h1 className="heading font-sans text-xl font-bold first-letter:uppercase">{formatDayTitle(date)}</h1>
           {date !== today && (
-            <Link to="/" className="text-sm text-blue-600 dark:text-blue-400">
+            <Link to="/" className="text-sm text-accent">
               Späť na dnes
             </Link>
           )}
         </div>
-        <button aria-label="Nasledujúci deň" className="p-2 text-2xl" onClick={() => goTo(addDaysISO(date, 1))}>
+        <button aria-label="Nasledujúci deň" className="p-2 text-3xl font-bold text-accent2" onClick={() => goTo(addDaysISO(date, 1))}>
           ›
         </button>
       </header>
 
       {stats.total > 0 && (
         <div className="mt-4">
-          <div className="mb-1 flex justify-between text-sm text-slate-500">
+          <div className="mb-1.5 flex justify-between text-xs font-bold tracking-wider text-accent2 uppercase">
             <span>
-              Hotovo {stats.done}/{stats.total}
+              Splnené misie {stats.done}/{stats.total}
             </span>
-            <span>{percent} %</span>
+            <span>{percent === 100 ? "Misia splnená!" : `${percent} %`}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-            <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${percent}%` }} />
+          <div className="h-4 overflow-hidden rounded-full border-2 border-line bg-surface-hi shadow-ink">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-accent to-accent2 transition-all duration-500"
+              style={{
+                width: `${percent}%`,
+                // diagonálne pruhy ako prúdiaca chakra
+                backgroundImage:
+                  'repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.25) 0 6px, transparent 6px 12px), linear-gradient(to right, var(--color-accent), var(--color-accent2))',
+              }}
+            />
           </div>
         </div>
       )}
 
-      {isFuture && <p className="mt-4 text-sm text-slate-500">Náhľad naplánovaných úloh – odškrtnúť ich pôjde v daný deň.</p>}
+      {isFuture && <p className="mt-4 text-sm text-muted">Náhľad naplánovaných misií – splniť ich pôjde v daný deň.</p>}
 
       <ul className="mt-4 space-y-2">
         {items?.map((item) => (
@@ -63,7 +72,7 @@ export function TodayPage() {
         ))}
       </ul>
 
-      {items?.length === 0 && <p className="mt-6 text-slate-500">Na tento deň nie sú žiadne úlohy.</p>}
+      {items?.length === 0 && <p className="mt-6 text-muted">Na tento deň nie sú žiadne misie.</p>}
 
       <QuickAdd date={date} today={today} />
     </section>
@@ -81,24 +90,26 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
   }
 
   return (
-    <li className="rounded-2xl bg-slate-50 dark:bg-slate-900">
+    <li className={`panel transition-colors ${done ? "border-l-accent3" : ""}`}>
       <div className="flex items-center gap-3 p-3">
         <button
           aria-label={done ? 'Označiť ako nehotové' : 'Označiť ako hotové'}
           disabled={readOnly || inactive}
           onClick={toggle}
-          className={`flex size-7 shrink-0 items-center justify-center rounded-full border-2 ${
-            done ? 'border-green-500 bg-green-500 text-white' : 'border-slate-300 dark:border-slate-600'
-          } disabled:opacity-40`}
+          className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
+            done ? 'text-line' : 'border-2 border-dashed border-line/60'
+          } disabled:opacity-30`}
         >
-          {done && '✓'}
+          {done && <Shuriken className="animate-check size-8" />}
         </button>
-        <div className={`min-w-0 flex-1 ${done || inactive ? 'text-slate-400 line-through' : ''}`}>
-          <div className="truncate font-medium">
-            {item.priority === 'high' && <span className="mr-1 text-red-500">!</span>}
-            {item.title}
+        <div className={`min-w-0 flex-1 ${done || inactive ? 'text-muted line-through' : ''}`}>
+          <div className="font-bold">
+            <span className="flex items-center gap-2">
+              <RankBadge priority={item.priority} />
+              <span className="truncate">{item.title}</span>
+            </span>
           </div>
-          <div className="text-xs text-slate-500 no-underline">
+          <div className="text-xs text-muted no-underline">
             {[
               item.timeOfDay,
               item.carriedFrom && `prenesená z ${formatShortDate(item.carriedFrom)}`,
@@ -110,7 +121,7 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
           </div>
         </div>
         {!readOnly && (
-          <button aria-label="Ďalšie akcie" className="px-2 text-xl text-slate-400" onClick={() => setMenuOpen(!menuOpen)}>
+          <button aria-label="Ďalšie akcie" className="px-2 text-xl text-muted active:text-accent" onClick={() => setMenuOpen(!menuOpen)}>
             ⋯
           </button>
         )}
@@ -128,7 +139,7 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
             )
           )}
           {item.activity && (
-            <Link to={`/aktivity/${item.activity.id}`} className="rounded-lg bg-white px-3 py-1.5 dark:bg-slate-800">
+            <Link to={`/aktivity/${item.activity.id}`} className={buttonSmall}>
               Upraviť aktivitu
             </Link>
           )}
@@ -140,7 +151,7 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
 
 function MenuButton({ onClick, children }: { onClick: () => Promise<void>; children: string }) {
   return (
-    <button className="rounded-lg bg-white px-3 py-1.5 dark:bg-slate-800" onClick={() => void onClick()}>
+    <button className={buttonSmall} onClick={() => void onClick()}>
       {children}
     </button>
   )
@@ -162,7 +173,7 @@ function QuickAdd({ date, today }: { date: ISODate; today: ISODate }) {
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Pridať úlohu na tento deň"
+        placeholder="Nová misia na tento deň"
         className={input}
         enterKeyHint="done"
       />

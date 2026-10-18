@@ -1,15 +1,20 @@
-// Zdieľané Tailwind triedy pre jednoduché ovládacie prvky.
+// Zdieľané Tailwind triedy pre jednoduché ovládacie prvky (ninja téma, farby z index.css).
 
 export const buttonPrimary =
-  'rounded-xl bg-blue-600 px-4 py-2.5 font-medium text-white active:bg-blue-700 disabled:opacity-50'
+  'shape-sm border-2 border-line bg-accent px-4 py-2.5 font-display tracking-wide text-surface shadow-ink active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-40'
 
 export const buttonSecondary =
-  'rounded-xl bg-slate-100 px-4 py-2.5 font-medium text-slate-800 active:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:active:bg-slate-700'
+  'shape-sm border-2 border-line bg-surface px-4 py-2.5 font-bold text-ink shadow-ink active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
 
 export const buttonDanger =
-  'rounded-xl bg-red-50 px-4 py-2.5 font-medium text-red-700 active:bg-red-100 dark:bg-red-950 dark:text-red-300'
+  'shape-sm border-2 border-line bg-danger px-4 py-2.5 font-bold text-surface shadow-ink active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
+
+export const buttonSmall =
+  'shape-sm border-2 border-line bg-surface-hi px-3 py-1.5 text-xs font-bold text-ink active:bg-accent active:text-surface'
 
 export const input =
-  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900'
+  'shape-sm w-full border-2 border-line bg-surface px-3 py-2.5 text-base text-ink outline-none placeholder:text-muted focus:border-accent'
 
-export const label = 'mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
+export const label = 'mb-1 block text-xs font-bold tracking-wider text-accent2 uppercase'
+
+export const checkbox = 'size-5 accent-accent'
