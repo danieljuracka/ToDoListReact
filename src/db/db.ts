@@ -10,7 +10,8 @@ export class TodoDb extends Dexie {
   settings!: EntityTable<Settings, 'key'>
 
   constructor() {
-    super('todo')
+    // Bez vyrovnávacej pamäte dotazov: na Androide sa po zápise nezobrazovali zmeny až do reštartu.
+    super('todo', { cache: 'disabled' })
     // Pri zmene schémy pridať this.version(2).stores({...}) s migráciou, nemeniť verziu 1.
     this.version(1).stores({
       activities: 'id, categoryId',
