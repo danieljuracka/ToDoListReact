@@ -49,7 +49,7 @@ describe('materializeDay', () => {
     ])
     await materializeDay('2026-10-17')
     await materializeDay('2026-10-18')
-    expect(await titles('2026-10-17', '2026-10-18')).toEqual(['posta:open', 'nakup:carried'])
+    expect(await titles('2026-10-17', '2026-10-18')).toEqual(['nakup:carried', 'posta:open'])
     const today = await getDayView('2026-10-18', '2026-10-18')
     expect(today.map((i) => [i.title, i.carriedFrom])).toEqual([['nakup', '2026-10-17']])
   })
@@ -93,7 +93,7 @@ describe('getDayView', () => {
     expect(await db.occurrences.count()).toBe(0)
   })
 
-  it('zoradí nesplnené podľa času, hotové na koniec', async () => {
+  it('zoradí podľa času bez ohľadu na stav', async () => {
     await db.activities.bulkAdd([
       activity('vecer', daily, { timeOfDay: '20:00' }),
       activity('rano', daily, { timeOfDay: '07:00' }),
@@ -101,7 +101,7 @@ describe('getDayView', () => {
     ])
     await materializeDay('2026-10-18')
     await setStatus('rano_2026-10-18', 'done')
-    expect(await titles('2026-10-18', '2026-10-18')).toEqual(['vecer:open', 'bez casu:open', 'rano:done'])
+    expect(await titles('2026-10-18', '2026-10-18')).toEqual(['rano:done', 'vecer:open', 'bez casu:open'])
   })
 })
 

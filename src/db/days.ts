@@ -109,10 +109,9 @@ export async function materializeUpTo(today: ISODate): Promise<void> {
 
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
 
+// Poradie nezávisí od stavu, aby sa zoznam po odškrtnutí nepreusporiadal pod prstom.
 function compareItems(a: DayItem, b: DayItem): number {
-  const closed = (i: DayItem) => (i.status === 'open' ? 0 : 1)
   return (
-    closed(a) - closed(b) ||
     (a.timeOfDay ?? '99:99').localeCompare(b.timeOfDay ?? '99:99') ||
     PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
     a.title.localeCompare(b.title, 'sk')
