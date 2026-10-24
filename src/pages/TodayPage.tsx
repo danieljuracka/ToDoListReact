@@ -34,6 +34,10 @@ export function TodayPage() {
 
   return (
     <section className="pt-4">
+      {/* DOČASNÉ: test aktualizácie aplikácie, po overení odstrániť */}
+      <div className="shape-sm mb-3 border-2 border-line bg-accent3 p-2 text-center text-sm font-bold text-surface">
+        Test aktualizácie – verzia 2
+      </div>
       <header className="flex items-center gap-2">
         <button aria-label="Predchádzajúci deň" className="p-2 text-3xl font-bold text-accent2" onClick={() => goTo(addDaysISO(date, -1))}>
           ‹
