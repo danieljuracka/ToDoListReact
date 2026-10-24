@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { ErrorToast } from './ErrorToast'
+import { UpdateBanner } from './UpdateBanner'
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -72,6 +73,7 @@ export function Layout() {
         <Outlet />
       </main>
       <ErrorToast />
+      <UpdateBanner />
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t-4 border-accent bg-line pb-[env(safe-area-inset-bottom)]">
         <ul className="mx-auto flex max-w-2xl">
           {tabs.map((tab) => (
