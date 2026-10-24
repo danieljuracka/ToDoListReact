@@ -1,6 +1,6 @@
 import { startOfISOWeek } from 'date-fns'
 import { addDaysISO, parseISODate, toISODate } from '@/domain/dates'
-import { occursOn } from '@/domain/recurrence'
+import { matchesRule, occursOn } from '@/domain/recurrence'
 import type { Activity, ISODate, Occurrence, OccurrenceStatus, Priority } from '@/domain/types'
 import { db } from './db'
 import { getSettings, updateSettings } from './settings'
@@ -110,16 +110,17 @@ export async function materializeUpTo(today: ISODate): Promise<void> {
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
 
 // Poradie nezávisí od stavu, aby sa zoznam po odškrtnutí nepreusporiadal pod prstom.
-function compareItems(a: DayItem, b: DayItem): number {
+// Vypnutá priorita sa nezobrazuje, preto nesmie ovplyvniť ani poradie.
+function compareItems(a: DayItem, b: DayItem, usePriority: boolean): number {
   return (
     (a.timeOfDay ?? '99:99').localeCompare(b.timeOfDay ?? '99:99') ||
-    PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
+    (usePriority ? PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] : 0) ||
     a.title.localeCompare(b.title, 'sk')
   )
 }
 
 /** Zoznam úloh pre deň. Iba číta, preto sa dá použiť v useLiveQuery. */
-export async function getDayView(date: ISODate, today: ISODate): Promise<DayItem[]> {
+export async function getDayView(date: ISODate, today: ISODate, usePriority = true): Promise<DayItem[]> {
   const [activities, stored] = await Promise.all([
     db.activities.toArray(),
     db.occurrences.where('date').equals(date).toArray(),
@@ -154,7 +155,7 @@ export async function getDayView(date: ISODate, today: ISODate): Promise<DayItem
     }
   }
 
-  return items.sort(compareItems)
+  return items.sort((a, b) => compareItems(a, b, usePriority))
 }
 
 export function dayStats(items: Pick<DayItem, 'status'>[]): DayStats {
@@ -196,14 +197,38 @@ export async function moveOccurrence(occurrence: Occurrence, to: ISODate): Promi
   })
 }
 
-/** Rýchle pridanie jednorazovej úlohy na konkrétny deň (F5). */
-export async function addQuickTask(title: string, date: ISODate, today: ISODate): Promise<void> {
+export type AddToDayResult = 'added' | 'reopened' | 'alreadyPresent'
+
+/**
+ * Pridá existujúcu aktivitu akéhokoľvek typu na deň (F5). Cyklus aktivity sa nemení,
+ * ručný výskyt sa zobrazí aj mimo neho.
+ */
+export async function addActivityToDay(activityId: string, date: ISODate, today: ISODate): Promise<AddToDayResult> {
+  return db.transaction('rw', db.activities, db.occurrences, async () => {
+    const activity = await db.activities.get(activityId)
+    if (!activity) throw new Error('Aktivita neexistuje.')
+    const existing = await db.occurrences.get(occurrenceId(activityId, date))
+    if (existing) {
+      if (existing.status === 'open' || existing.status === 'done') return 'alreadyPresent'
+      await db.occurrences.update(existing.id, { status: 'open', manual: true, completedAt: undefined })
+      return 'reopened'
+    }
+    // Budúci deň z cyklu je v zozname ako náhľad.
+    if (date > today && occursOn(activity, date)) return 'alreadyPresent'
+    const order = await db.occurrences.where('date').equals(date).count()
+    await db.occurrences.put({ ...newOccurrence(activity, date, order), manual: true })
+    return 'added'
+  })
+}
+
+/** Vytvorí aktivitu „Podľa potreby“ a pridá ju na deň (F5). */
+export async function createAndAddActivity(title: string, date: ISODate, today: ISODate): Promise<void> {
   const { defaultCarryOver } = await getSettings()
   const activity: Activity = {
     id: crypto.randomUUID(),
     title,
     priority: 'medium',
-    recurrence: { type: 'once', date },
+    recurrence: { type: 'onDemand' },
     startDate: date,
     skipDates: [],
     carryOver: defaultCarryOver,
@@ -211,19 +236,42 @@ export async function addQuickTask(title: string, date: ISODate, today: ISODate)
   }
   await db.transaction('rw', db.activities, db.occurrences, async () => {
     await db.activities.add(activity)
-    if (date <= today) {
-      const order = await db.occurrences.where('date').equals(date).count()
-      await db.occurrences.put(newOccurrence(activity, date, order))
+    await addActivityToDay(activity.id, date, today)
+  })
+}
+
+/**
+ * Odoberie aktivitu z dňa; aktivita ani cyklus sa nemaže. Ak deň patrí do cyklu,
+ * pribudne do skipDates, inak by sa výskyt vytvoril alebo zobrazil znova.
+ * Splnené a presunuté výskyty ostávajú v histórii.
+ */
+export async function removeFromDay(activityId: string, date: ISODate): Promise<void> {
+  await db.transaction('rw', db.activities, db.occurrences, async () => {
+    const id = occurrenceId(activityId, date)
+    const existing = await db.occurrences.get(id)
+    if (existing && existing.status !== 'open' && existing.status !== 'skipped') return
+    if (existing) await db.occurrences.delete(id)
+    const activity = await db.activities.get(activityId)
+    // occursOn by skipDates už zohľadnil, preto priamo pravidlo.
+    if (
+      activity &&
+      !activity.skipDates.includes(date) &&
+      matchesRule(activity.recurrence, parseISODate(activity.startDate), parseISODate(date))
+    ) {
+      await db.activities.update(activityId, { skipDates: [...activity.skipDates, date] })
     }
   })
 }
 
-/** Odstráni nesplnené výskyty aktivity od dneška, aby sa prepočítali podľa nových pravidiel. */
-async function dropOpenFromToday(activityId: string, today: ISODate, includeCarried: boolean) {
+/**
+ * Odstráni nesplnené výskyty aktivity od dneška, aby sa prepočítali podľa nových pravidiel.
+ * Bez `all` ostanú prenesené a ručne pridané výskyty, ktoré z pravidiel nevznikli.
+ */
+async function dropOpenFromToday(activityId: string, today: ISODate, all: boolean) {
   await db.occurrences
     .where('[activityId+date]')
     .between([activityId, today], [activityId, '9999-12-31'], true, true)
-    .filter((o) => o.status === 'open' && (includeCarried || !o.carriedFrom))
+    .filter((o) => o.status === 'open' && (all || (!o.carriedFrom && !o.manual)))
     .delete()
 }
 

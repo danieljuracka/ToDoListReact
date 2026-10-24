@@ -1,4 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { todayISO } from '@/domain/dates'
+import { migrateOnceActivity, type StoredActivity } from '@/domain/legacy'
 import type { Activity, Category, DayNote, Occurrence, Settings } from '@/domain/types'
 
 /**
@@ -21,15 +23,34 @@ export class TodoDb extends Dexie {
   constructor(name = DB_NAME) {
     // Bez vyrovnávacej pamäte dotazov: na Androide sa po zápise nezobrazovali zmeny až do reštartu.
     super(name, { cache: 'disabled' })
-    // Pri zmene schémy pridať this.version(2).stores({...}) s migráciou, nemeniť verziu 1.
-    this.version(1).stores({
-      activities: 'id, categoryId',
-      occurrences: 'id, date, activityId, [activityId+date]',
-      categories: 'id, order',
-      days: 'date',
-      settings: 'key',
-    })
+    // Pri zmene schémy pridať ďalšiu verziu s migráciou, existujúce verzie nemeniť.
+    this.version(1).stores(SCHEMA_V1)
+    // Typ „Jednorazovo“ (once) nahradil typ „Podľa potreby“ (onDemand), indexy sa nemenia.
+    this.version(2)
+      .stores(SCHEMA_V1)
+      .upgrade(async (tx) => {
+        const today = todayISO()
+        const occurrences = tx.table<Occurrence, string>('occurrences')
+        const stored = await tx.table<StoredActivity, string>('activities').toArray()
+        for (const item of stored) {
+          if (item.recurrence.type !== 'once') continue
+          const { activity, occurrence } = migrateOnceActivity(item, today)
+          await tx.table('activities').put(activity)
+          if (occurrence && !(await occurrences.get(occurrence.id))) {
+            const order = await occurrences.where('date').equals(occurrence.date).count()
+            await occurrences.put({ ...occurrence, order })
+          }
+        }
+      })
   }
+}
+
+const SCHEMA_V1 = {
+  activities: 'id, categoryId',
+  occurrences: 'id, date, activityId, [activityId+date]',
+  categories: 'id, order',
+  days: 'date',
+  settings: 'key',
 }
 
 export const db = new TodoDb()

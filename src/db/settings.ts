@@ -1,7 +1,7 @@
 import type { Settings } from '@/domain/types'
 import { db } from './db'
 
-const DEFAULTS: Settings = { key: 'app', theme: 'system', defaultCarryOver: true }
+const DEFAULTS: Settings = { key: 'app', theme: 'system', defaultCarryOver: true, usePriority: true }
 
 export async function getSettings(): Promise<Settings> {
   return { ...DEFAULTS, ...(await db.settings.get('app')) }

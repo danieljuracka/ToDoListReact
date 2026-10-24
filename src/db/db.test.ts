@@ -20,7 +20,7 @@ async function createLegacy(title: string) {
     carryOver: false,
     createdAt: 0,
   })
-  await legacy.settings.put({ key: 'app', theme: 'system', defaultCarryOver: false })
+  await legacy.settings.put({ key: 'app', theme: 'system', defaultCarryOver: false, usePriority: true })
   legacy.close()
 }
 
@@ -52,5 +52,37 @@ describe('migrateLegacyDb', () => {
   it('bez starej databázy nerobí nič', async () => {
     await migrateLegacyDb()
     expect(await db.activities.count()).toBe(0)
+  })
+})
+
+describe('verzia 2', () => {
+  it('jednorazové aktivity prevedie na podľa potreby a zachová budúcu misiu', async () => {
+    const name = 'test-v1'
+    await Dexie.delete(name)
+    const v1 = new Dexie(name)
+    v1.version(1).stores({ activities: 'id, categoryId', occurrences: 'id, date, activityId, [activityId+date]' })
+    const once = (id: string, date: string) => ({
+      id,
+      title: id,
+      priority: 'medium',
+      recurrence: { type: 'once', date },
+      startDate: date,
+      skipDates: [],
+      carryOver: false,
+      createdAt: 0,
+    })
+    await v1.table('activities').bulkAdd([once('minula', '2000-01-01'), once('buduca', '2999-01-01')])
+    v1.close()
+
+    const upgraded = new TodoDb(name)
+    const activities = await upgraded.activities.orderBy('id').toArray()
+    expect(activities.map((a) => [a.id, a.recurrence.type])).toEqual([
+      ['buduca', 'onDemand'],
+      ['minula', 'onDemand'],
+    ])
+    const occurrences = await upgraded.occurrences.toArray()
+    expect(occurrences.map((o) => [o.id, o.status, o.manual])).toEqual([['buduca_2999-01-01', 'open', true]])
+    upgraded.close()
+    await Dexie.delete(name)
   })
 })

@@ -3,10 +3,12 @@ import { Link } from 'react-router'
 import { RankBadge } from '@/components/Ninja'
 import { buttonPrimary } from '@/components/ui'
 import { db } from '@/db/db'
+import { getSettings } from '@/db/settings'
 import { describeRule } from '@/domain/describe'
 
 export function ActivitiesPage() {
   const activities = useLiveQuery(() => db.activities.toArray(), [])
+  const usePriority = useLiveQuery(getSettings, [])?.usePriority ?? true
   const sorted = (activities ?? []).sort((a, b) => a.title.localeCompare(b.title, 'sk'))
 
   return (
@@ -23,7 +25,7 @@ export function ActivitiesPage() {
           <li key={a.id}>
             <Link to={`/aktivity/${a.id}`} className="block panel p-3">
               <div className="flex items-center gap-2 font-bold">
-                <RankBadge priority={a.priority} />
+                {usePriority && <RankBadge priority={a.priority} />}
                 {a.title}
               </div>
               <div className="text-sm text-muted">

@@ -15,8 +15,9 @@ import type { Activity, ISODate, RecurrenceRule } from './types'
  */
 export function matchesRule(rule: RecurrenceRule, start: Date, date: Date): boolean {
   switch (rule.type) {
-    case 'once':
-      return differenceInCalendarDays(date, parseISODate(rule.date)) === 0
+    case 'onDemand':
+      // Zobrazí sa iba v dni, do ktorých ju používateľ pridá ručne.
+      return false
     case 'daily':
       return differenceInCalendarDays(date, start) % Math.max(1, rule.interval) === 0
     case 'weekly': {

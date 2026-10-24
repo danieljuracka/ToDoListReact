@@ -19,10 +19,10 @@ function activity(recurrence: RecurrenceRule, extra: Partial<Activity> = {}): Ac
 const days = (a: Activity, from: string, count: number) => nextOccurrences(a, from, count)
 
 describe('occursOn', () => {
-  it('jednorazová aktivita sa zobrazí iba v zadaný deň', () => {
-    const a = activity({ type: 'once', date: '2026-10-18' }, { startDate: '2026-10-18' })
-    expect(occursOn(a, '2026-10-18')).toBe(true)
-    expect(occursOn(a, '2026-10-19')).toBe(false)
+  it('aktivita podľa potreby sa sama nezobrazí v žiadny deň', () => {
+    const a = activity({ type: 'onDemand' }, { startDate: '2026-10-18' })
+    expect(occursOn(a, '2026-10-18')).toBe(false)
+    expect(days(a, '2026-10-18', 5)).toEqual([])
   })
 
   it('denne s intervalom 2 sa zobrazí každý druhý deň od startDate', () => {

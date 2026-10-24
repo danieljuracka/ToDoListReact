@@ -1,5 +1,3 @@
-import { format } from 'date-fns'
-import { parseISODate } from './dates'
 import type { RecurrenceRule, Weekday } from './types'
 
 export const WEEKDAY_SHORT: Record<Weekday, string> = { 1: 'Po', 2: 'Ut', 3: 'St', 4: 'Št', 5: 'Pi', 6: 'So', 7: 'Ne' }
@@ -19,8 +17,8 @@ const NTH: Record<number, string> = { 1: 'prvý', 2: 'druhý', 3: 'tretí', 4: '
 /** Popis pravidla pre zoznam aktivít, napr. „Každý Po, St, Pi“. */
 export function describeRule(rule: RecurrenceRule): string {
   switch (rule.type) {
-    case 'once':
-      return `Jednorazovo ${format(parseISODate(rule.date), 'd. M. yyyy')}`
+    case 'onDemand':
+      return 'Podľa potreby'
     case 'daily':
       return rule.interval === 1 ? 'Každý deň' : `Každých ${rule.interval} dní`
     case 'weekly': {

@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { ActivityCombobox } from '@/components/ActivityCombobox'
 import { RankBadge, Shuriken } from '@/components/Ninja'
-import { buttonPrimary, buttonSmall, input } from '@/components/ui'
-import { addQuickTask, dayStats, getDayView, materializeDay, moveOccurrence, setStatus, type DayItem } from '@/db/days'
+import { buttonSmall } from '@/components/ui'
+import { dayStats, getDayView, materializeDay, moveOccurrence, removeFromDay, setStatus, type DayItem } from '@/db/days'
+import { getSettings } from '@/db/settings'
 import { addDaysISO, formatDayTitle, formatShortDate } from '@/domain/dates'
 import type { ISODate } from '@/domain/types'
 import { useToday } from '@/hooks/useToday'
@@ -12,8 +14,15 @@ export function TodayPage() {
   const today = useToday()
   const { date = today } = useParams()
   const navigate = useNavigate()
-  const items = useLiveQuery(() => getDayView(date, today), [date, today])
+  const usePriority = useLiveQuery(getSettings, [])?.usePriority ?? true
+  const items = useLiveQuery(() => getDayView(date, today, usePriority), [date, today, usePriority])
   const isFuture = date > today
+  // Preskočenú alebo presunutú misiu sa dá pridať znova, preto v zozname nie je zakázaná.
+  const presentIds = new Set(
+    (items ?? [])
+      .filter((i) => i.status === 'open' || i.status === 'done')
+      .flatMap((i) => i.occurrence?.activityId ?? i.activity?.id ?? []),
+  )
 
   useEffect(() => {
     if (date === today) void materializeDay(today)
@@ -68,22 +77,41 @@ export function TodayPage() {
 
       <ul className="mt-4 space-y-2">
         {items?.map((item) => (
-          <TaskRow key={item.key} item={item} date={date} readOnly={isFuture || !item.occurrence} />
+          <TaskRow
+            key={item.key}
+            item={item}
+            date={date}
+            readOnly={isFuture || !item.occurrence}
+            usePriority={usePriority}
+          />
         ))}
       </ul>
 
       {items?.length === 0 && <p className="mt-6 text-muted">Na tento deň nie sú žiadne misie.</p>}
 
-      <QuickAdd date={date} today={today} />
+      <ActivityCombobox date={date} today={today} presentIds={presentIds} usePriority={usePriority} />
     </section>
   )
 }
 
-function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readOnly: boolean }) {
+function TaskRow({
+  item,
+  date,
+  readOnly,
+  usePriority,
+}: {
+  item: DayItem
+  date: ISODate
+  /** Misiu nejde odškrtnúť ani presunúť (budúci deň); odobrať z dňa ju ide. */
+  readOnly: boolean
+  usePriority: boolean
+}) {
   const [menuOpen, setMenuOpen] = useState(false)
   const occurrence = item.occurrence
   const done = item.status === 'done'
   const inactive = item.status === 'skipped' || item.status === 'carried'
+  const activityId = occurrence?.activityId ?? item.activity?.id
+  const canRemove = !!activityId && (item.status === 'open' || item.status === 'skipped')
 
   const toggle = () => {
     if (occurrence && !inactive) void setStatus(occurrence.id, done ? 'open' : 'done')
@@ -105,7 +133,7 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
         <div className={`min-w-0 flex-1 ${done || inactive ? 'text-muted line-through' : ''}`}>
           <div className="font-bold">
             <span className="flex items-center gap-2">
-              <RankBadge priority={item.priority} />
+              {usePriority && <RankBadge priority={item.priority} />}
               <span className="truncate">{item.title}</span>
             </span>
           </div>
@@ -120,29 +148,34 @@ function TaskRow({ item, date, readOnly }: { item: DayItem; date: ISODate; readO
               .join(' · ')}
           </div>
         </div>
-        {!readOnly && (
+        {(!readOnly || canRemove) && (
           <button aria-label="Ďalšie akcie" className="px-2 text-xl text-muted active:text-accent" onClick={() => setMenuOpen(!menuOpen)}>
             ⋯
           </button>
         )}
       </div>
-      {menuOpen && occurrence && (
+      {menuOpen && (
         <div className="flex flex-wrap gap-2 px-3 pb-3 text-sm">
-          {item.status === 'skipped' ? (
-            <MenuButton onClick={() => setStatus(occurrence.id, 'open')}>Obnoviť</MenuButton>
-          ) : (
-            item.status === 'open' && (
-              <>
-                <MenuButton onClick={() => setStatus(occurrence.id, 'skipped')}>Preskočiť</MenuButton>
-                <MenuButton onClick={() => moveOccurrence(occurrence, addDaysISO(date, 1))}>Presunúť na zajtra</MenuButton>
-              </>
-            )
+          {!readOnly && occurrence && (
+            <>
+              {item.status === 'skipped' ? (
+                <MenuButton onClick={() => setStatus(occurrence.id, 'open')}>Obnoviť</MenuButton>
+              ) : (
+                item.status === 'open' && (
+                  <>
+                    <MenuButton onClick={() => setStatus(occurrence.id, 'skipped')}>Preskočiť</MenuButton>
+                    <MenuButton onClick={() => moveOccurrence(occurrence, addDaysISO(date, 1))}>Presunúť na zajtra</MenuButton>
+                  </>
+                )
+              )}
+              {item.activity && (
+                <Link to={`/aktivity/${item.activity.id}`} className={buttonSmall}>
+                  Upraviť aktivitu
+                </Link>
+              )}
+            </>
           )}
-          {item.activity && (
-            <Link to={`/aktivity/${item.activity.id}`} className={buttonSmall}>
-              Upraviť aktivitu
-            </Link>
-          )}
+          {canRemove && <MenuButton onClick={() => removeFromDay(activityId, date)}>Odobrať z dňa</MenuButton>}
         </div>
       )}
     </li>
@@ -154,32 +187,5 @@ function MenuButton({ onClick, children }: { onClick: () => Promise<void>; child
     <button className={buttonSmall} onClick={() => void onClick()}>
       {children}
     </button>
-  )
-}
-
-function QuickAdd({ date, today }: { date: ISODate; today: ISODate }) {
-  const [title, setTitle] = useState('')
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    const value = title.trim()
-    if (!value) return
-    await addQuickTask(value, date, today)
-    setTitle('')
-  }
-
-  return (
-    <form onSubmit={submit} className="mt-6 flex gap-2">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Nová misia na tento deň"
-        className={input}
-        enterKeyHint="done"
-      />
-      <button type="submit" className={buttonPrimary} disabled={!title.trim()}>
-        +
-      </button>
-    </form>
   )
 }

@@ -68,6 +68,19 @@ export function SettingsPage() {
         />
       </label>
 
+      <label className="flex items-center justify-between panel p-3">
+        <span>
+          Používať prioritu (rank A/B/C)
+          <span className="block text-sm text-muted">Vypnutá sa nezobrazuje a neovplyvňuje poradie misií.</span>
+        </span>
+        <input
+          type="checkbox"
+          className={checkbox}
+          checked={settings?.usePriority ?? true}
+          onChange={(e) => void updateSettings({ usePriority: e.target.checked })}
+        />
+      </label>
+
       <div className="space-y-3 panel p-3">
         <div>
           <h2 className="font-display tracking-wide text-accent2">Záloha dát</h2>

@@ -14,7 +14,7 @@ import { useToday } from '@/hooks/useToday'
 type RuleType = RecurrenceRule['type']
 
 const RULE_LABELS: Record<RuleType, string> = {
-  once: 'Jednorazovo',
+  onDemand: 'Podľa potreby',
   daily: 'Denne / každých N dní',
   weekly: 'Týždenne vo vybrané dni',
   monthlyDay: 'Mesačne – deň v mesiaci',
@@ -27,10 +27,8 @@ const RULE_LABELS: Record<RuleType, string> = {
 
 const WEEKDAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7]
 
-function defaultRule(type: RuleType, date: string): RecurrenceRule {
+function defaultRule(type: RuleType): RecurrenceRule {
   switch (type) {
-    case 'once':
-      return { type, date }
     case 'daily':
       return { type, interval: 1 }
     case 'weekly':
@@ -77,9 +75,12 @@ export function ActivityFormPage() {
   // Späť tam, odkiaľ používateľ prišiel (Dnes alebo Aktivity); pri priamom otvorení na zoznam.
   const goBack = () => (window.history.state?.idx ? navigate(-1) : navigate('/aktivity'))
   const set = (changes: Partial<Activity>) => setForm({ ...form, ...changes })
+  // „Podľa potreby“ nemá čas ani koniec; skryté hodnoty by ovplyvnili radenie.
   const setRule = (rule: RecurrenceRule) =>
-    set({ recurrence: rule, ...(rule.type === 'once' ? { startDate: rule.date } : {}) })
+    set({ recurrence: rule, ...(rule.type === 'onDemand' ? { timeOfDay: undefined, endDate: undefined } : {}) })
   const rule = form.recurrence
+  const onDemand = rule.type === 'onDemand'
+  const usePriority = settings?.usePriority ?? true
   const preview = nextOccurrences(form, today, 5)
 
   const submit = async (e: FormEvent) => {
@@ -112,30 +113,32 @@ export function ActivityFormPage() {
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field title="Priorita">
-          <select className={input} value={form.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
-            <option value="low">Nízka (rank C)</option>
-            <option value="medium">Stredná (rank B)</option>
-            <option value="high">Vysoká (rank A)</option>
-          </select>
-        </Field>
-        <Field title="Čas (voliteľné)">
-          <input
-            type="time"
-            className={input}
-            value={form.timeOfDay ?? ''}
-            onChange={(e) => set({ timeOfDay: e.target.value || undefined })}
-          />
-        </Field>
-      </div>
+      {(usePriority || !onDemand) && (
+        <div className={`grid gap-3 ${usePriority && !onDemand ? 'grid-cols-2' : ''}`}>
+          {usePriority && (
+            <Field title="Priorita">
+              <select className={input} value={form.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
+                <option value="low">Nízka (rank C)</option>
+                <option value="medium">Stredná (rank B)</option>
+                <option value="high">Vysoká (rank A)</option>
+              </select>
+            </Field>
+          )}
+          {!onDemand && (
+            <Field title="Čas (voliteľné)">
+              <input
+                type="time"
+                className={input}
+                value={form.timeOfDay ?? ''}
+                onChange={(e) => set({ timeOfDay: e.target.value || undefined })}
+              />
+            </Field>
+          )}
+        </div>
+      )}
 
       <Field title="Opakovanie">
-        <select
-          className={input}
-          value={rule.type}
-          onChange={(e) => setRule(defaultRule(e.target.value as RuleType, form.startDate))}
-        >
+        <select className={input} value={rule.type} onChange={(e) => setRule(defaultRule(e.target.value as RuleType))}>
           {Object.entries(RULE_LABELS).map(([value, text]) => (
             <option key={value} value={value}>
               {text}
@@ -146,7 +149,7 @@ export function ActivityFormPage() {
 
       <RuleEditor rule={rule} onChange={setRule} />
 
-      {rule.type !== 'once' && (
+      {!onDemand && (
         <div className="grid grid-cols-2 gap-3">
           <Field title="Od">
             <input
@@ -179,7 +182,9 @@ export function ActivityFormPage() {
 
       <div className="panel p-3 text-sm">
         <div className={label}>Najbližšie výskyty</div>
-        {preview.length ? (
+        {onDemand ? (
+          <p className="text-muted">Zobrazí sa iba v dni, do ktorých ju pridáš na obrazovke dňa.</p>
+        ) : preview.length ? (
           <ul className="text-ink/80">
             {preview.map((d) => (
               <li key={d} className="first-letter:uppercase">
@@ -255,17 +260,6 @@ function WeekdayPicker({ value, onChange }: { value: Weekday; onChange: (d: Week
 
 function RuleEditor({ rule, onChange }: { rule: RecurrenceRule; onChange: (rule: RecurrenceRule) => void }) {
   switch (rule.type) {
-    case 'once':
-      return (
-        <Field title="Dátum">
-          <input
-            type="date"
-            className={input}
-            value={rule.date}
-            onChange={(e) => e.target.value && onChange({ ...rule, date: e.target.value })}
-          />
-        </Field>
-      )
     case 'daily':
       return (
         <Field title="Každých N dní">

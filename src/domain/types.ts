@@ -9,7 +9,7 @@ export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type Priority = 'low' | 'medium' | 'high'
 
 export type RecurrenceRule =
-  | { type: 'once'; date: ISODate }
+  | { type: 'onDemand' }
   | { type: 'daily'; interval: number }
   | { type: 'weekly'; interval: number; weekdays: Weekday[] }
   | { type: 'monthlyDay'; day: number }
@@ -55,6 +55,8 @@ export interface Occurrence {
   order: number
   /** Deň, z ktorého bola úloha prenesená. */
   carriedFrom?: ISODate
+  /** Výskyt pridal používateľ ručne, nevznikol z pravidla. */
+  manual?: boolean
 }
 
 export interface Category {
@@ -74,6 +76,8 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark'
   /** Predvolená hodnota carryOver pre nové aktivity. */
   defaultCarryOver: boolean
+  /** Zobrazovať prioritu (rank A/B/C) a radiť podľa nej. */
+  usePriority: boolean
   /** Posledný deň, pre ktorý sú výskyty uložené v histórii. */
   lastMaterialized?: ISODate
 }
